@@ -1,7 +1,7 @@
 #include <iostream>
 #include "filesystem.h"
 using namespace std;
-//#define READ
+#define READ
 int main()
 {
 	/*
@@ -9,7 +9,6 @@ int main()
 	_ctime64_s(buf,1000,&t); 
 	cout<<buf<<endl;
 	*/
-
 	::miniFileSystem fs;
 	fs.create_disk("music",260000);
 	Disk &disk = fs.dskmounted[fs.curr];

@@ -94,8 +94,9 @@ struct Disk
 	~Disk();
 	bool has_open(unsigned int file);
 	bool find_empty_block(unsigned int *block);
-	void init_disk_management_facility();
+	void init_disk_management_facility(bool isformat = false);
 	bool init_fileOpenTable(unsigned int fds);
+	bool clear_block(unsigned int block);
 	bool find_file_in_directory(const char *filename,unsigned int *fds);
 	void read_block(unsigned int i,char *p,unsigned int num = BLOCKSIZE_KB * KBSIZE);
 	void write_block(unsigned int i,char *p,unsigned int num = BLOCKSIZE_KB * KBSIZE);
