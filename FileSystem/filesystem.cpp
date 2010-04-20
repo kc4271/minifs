@@ -649,7 +649,14 @@ bool Disk::write_file(unsigned int file,char *mem,unsigned int count)
 		return false;
 	}
 	
-	fileOpenTable fot_rollback(p->second);
+	/*-----------rollback information----------------*/
+	bool isbufchanged = p->second.isbufchanged;	
+	bool isbigger = p->second.isbigger;
+	long long offset = p->second.offset;
+	long long filesize = p->second.pfds->get_file_size();
+	unsigned int block_throw = 0;
+	bool rollback = false;
+	/*-----------rollback information----------------*/
 
 	for(unsigned int writelen = 0;writelen < count;)
 	{
@@ -664,23 +671,43 @@ bool Disk::write_file(unsigned int file,char *mem,unsigned int count)
 			if(!p->second.write_buf(mem + writelen,count - writelen))
 			{
 				report_error("rollback!");
-				p->second = fot_rollback;
-				return false;
+				rollback = true;
+				break;
 			}
 			writelen += count;
 		}
 		else
 		{
 			if(!p->second.write_buf(mem + writelen))
-				return false;
+			{
+				rollback = true;
+				break;
+			}
 			writelen += BLOCKSIZE_KB * KBSIZE - bufoff;
 			if(!p->second.load_next_block_write())
 			{
 				report_error("rollback!");
-				p->second = fot_rollback;
-				return false;
+				rollback = true;
+				break;
 			}
+			block_throw++;
 		}
+	}
+	if(rollback)
+	{
+		for(unsigned int i = 0;i < block_throw;i++)
+		{
+			p->second.blocks.pop_back();
+		}
+		unsigned int block = (unsigned int)(offset / (BLOCKSIZE_KB * KBSIZE));
+		unsigned int bufoff = offset % (BLOCKSIZE_KB * KBSIZE);
+		read_block(p->second.blocks[block],p->second.buf);
+		p->second.block_index = block;
+		p->second.ptrinbuf = p->second.buf + bufoff;
+		p->second.isbufchanged = isbufchanged;
+		p->second.isbigger = isbigger;
+		p->second.offset = offset;
+		p->second.pfds->set_file_size(filesize);
 	}
 	return true;
 }

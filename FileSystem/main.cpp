@@ -2,7 +2,7 @@
 #include "filesystem.h"
 #include "windows.h"
 using namespace std;
-#define READ
+//#define READ
 int main()
 {
 	/*
@@ -30,7 +30,7 @@ int main()
 	unsigned int filea[2];
 	disk.open_file("A.rar",&filea[0]);
 	disk.open_file("B.rar",&filea[1]);
-	/*
+	
 	for(int j = 0;j < 2;j++)
 	{
 		for(int i = 0;i < size;)
@@ -51,17 +51,18 @@ int main()
 		}
 		disk.close_file(filea[j]);
 	}
-	*/
+	delete []buf;
+	in.close();
+	cout<<::GetTickCount() - t << endl;
 	
+	/*
 	disk.write_file(filea[0],buf,size);
 	disk.write_file(filea[1],buf,size);
 	disk.close_file(filea[1]);
 	disk.close_file(filea[0]);
-	delete []buf;
-	in.close();
-	cout<<::GetTickCount() - t << endl;
+	
 	disk.directory();
-	/*
+	
 	disk.destroy_file("A.rar");
 	disk.destroy_file("B.rar");
 	disk.directory();
