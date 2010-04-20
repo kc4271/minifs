@@ -838,17 +838,18 @@ bool Disk::destroy_file(char *filename)
 	}
 
 	char indexbuf[BLOCKSIZE_KB * KBSIZE];			//level 3
-	memset(indexbuf,0,BLOCKSIZE_KB * KBSIZE);
 	if(fdes[file].get_index(11) != 0)
 	{
 		read_block(fdes[file].get_index(11),indexbuf);
+		for(unsigned int i = 0;i < (BLOCKSIZE_KB * KBSIZE / INDEXSIZE);i++)
+		{
+			if(((int *)indexbuf)[i] == 0)
+				break;
+			unset_bit(((int *)indexbuf)[i],pdisk);
+		}
+		unset_bit(fdes[file].get_index(11),pdisk);
 	}
-	for(unsigned int i = 0;i < (BLOCKSIZE_KB * KBSIZE / INDEXSIZE);i++)
-	{
-		if(((int *)indexbuf)[i] == 0)
-			break;
-		unset_bit(((int *)indexbuf)[i],pdisk);
-	}
+	
 
 	if(fdes[file].get_index(10) != 0)		//level 2
 	{
