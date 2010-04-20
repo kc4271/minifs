@@ -1,5 +1,6 @@
 #include <iostream>
 #include "filesystem.h"
+#include "windows.h"
 using namespace std;
 //#define READ
 int main()
@@ -14,6 +15,7 @@ int main()
 	Disk &disk = fs.dskmounted[fs.curr];
 
 #ifdef READ
+	unsigned int t = ::GetTickCount();
 	ifstream in("D:\\filelist.txt");
 	string s;
 	int i = 0,base = 10011047;
@@ -45,7 +47,6 @@ int main()
 	disk.directory();
 	disk.save_to_file();
 	in.close();
-	
 #else
 	disk.init_from_file();
 	for(unsigned int i = 0;i < disk.blocknum;i++)

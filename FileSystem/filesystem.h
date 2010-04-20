@@ -54,7 +54,7 @@ struct fileOpenTable;
 
 struct fileOpenTable
 {
-	bool isbufchanged;
+	bool isbufchanged;	
 	bool isbigger;
 	char buf[BLOCKSIZE_KB * KBSIZE];
 	char *ptrinbuf;
@@ -78,8 +78,6 @@ struct fileOpenTable
 
 struct Disk
 {
-	friend fileOpenTable;
-
 	string name;
 	char *pdisk;
 	char *pblocks;
