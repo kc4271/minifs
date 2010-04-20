@@ -52,6 +52,7 @@ int main()
 		disk.close_file(filea[j]);
 	}
 	*/
+	
 	disk.write_file(filea[0],buf,size);
 	disk.write_file(filea[1],buf,size);
 	disk.close_file(filea[1]);
@@ -60,6 +61,7 @@ int main()
 	in.close();
 	cout<<::GetTickCount() - t << endl;
 	disk.directory();
+	/*
 	disk.destroy_file("A.rar");
 	disk.destroy_file("B.rar");
 	disk.directory();
@@ -68,7 +70,8 @@ int main()
 		if(has_data(i,disk.pdisk))
 			cout<<"ERROR! "<<i<<endl;
 	}
-	//disk.save_to_file();
+	*/
+	disk.save_to_file();
 #else
 	char *buf = new char[size];
 	unsigned int file[2];
