@@ -59,6 +59,15 @@ int main()
 	delete []buf;
 	in.close();
 	cout<<::GetTickCount() - t << endl;
+	disk.directory();
+	disk.destroy_file("A.rar");
+	disk.destroy_file("B.rar");
+	disk.directory();
+	for(int i = 0;i < disk.blocknum;i++)
+	{
+		if(has_data(i,disk.pdisk))
+			cout<<"ERROR! "<<i<<endl;
+	}
 	//disk.save_to_file();
 #else
 	char *buf = new char[size];
