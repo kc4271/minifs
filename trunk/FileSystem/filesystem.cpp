@@ -11,22 +11,22 @@ Type get_upbound(Type integer_value,Type segment)
 
 void set_bit(unsigned int pos,char *pbegin)
 {
-	unsigned int num_byte = pos / 8;
-	unsigned int offset = pos % 8;
+	unsigned int num_byte = (pos >> 3);
+	unsigned int offset = pos & 0x7;
 	pbegin[num_byte] |= (0x1 << (7 - offset));
 }
 
 void unset_bit(unsigned int pos,char *pbegin)
 {
-	unsigned int num_byte = pos / 8;
-	unsigned int offset = pos % 8;
+	unsigned int num_byte = (pos >> 3);
+	unsigned int offset = pos & 0x7;
 	pbegin[num_byte] &= (0xff ^ (0x1 << (7 - offset)));
 }
 
 bool has_data(unsigned int pos,char *pbegin)
 {
-	unsigned int num_byte = pos / 8;
-	unsigned int offset = pos % 8;
+	unsigned int num_byte = (pos >> 3);
+	unsigned int offset = pos & 0x7;
 	return (pbegin[num_byte] & (0x1 << (7 - offset))) > 0;
 }
 
