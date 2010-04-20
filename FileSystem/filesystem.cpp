@@ -231,6 +231,7 @@ bool fileOpenTable::load_next_block_write()
 			return false;
 		}
 		blocks.push_back(eblock);
+		set_bit(eblock,disk->pdisk);
 		block_index++;
 	}
 	else
@@ -293,9 +294,14 @@ bool fileOpenTable::write_back_block_information()
 		{
 			report_error("fileOpenTable::write_back_block_information disk is full!\nRollback!");
 			memcpy(this->pfds,fdes_rollback,FILEDESCRIPTORSIZE);
+			for(unsigned int z = 0;z < setbit_buf.size();z++)
+			{
+				unset_bit(setbit_buf[z],disk->pdisk);
+			}
 			return false;
 		}
 		setbit_buf.push_back(eblock);
+		set_bit(eblock,disk->pdisk);
 		pfds->set_index(10,eblock);
 		disk->write_block(eblock,bbuf1);
 	}
@@ -308,9 +314,14 @@ bool fileOpenTable::write_back_block_information()
 		{
 			report_error("fileOpenTable::write_back_block_information disk if full!\nRollback!");
 			memcpy(this->pfds,fdes_rollback,FILEDESCRIPTORSIZE);
+			for(unsigned int z = 0;z < setbit_buf.size();z++)
+			{
+				unset_bit(setbit_buf[z],disk->pdisk);
+			}
 			return false;
 		}
 		setbit_buf.push_back(eblock);
+		set_bit(eblock,disk->pdisk);
 		disk->clear_block(eblock);
 		pfds->set_index(11,eblock);
 	}
@@ -332,9 +343,14 @@ bool fileOpenTable::write_back_block_information()
 			{
 				report_error("fileOpenTable::write_back_block_information disk if full!\nRollback!");
 				memcpy(this->pfds,fdes_rollback,FILEDESCRIPTORSIZE);
+				for(unsigned int z = 0;z < setbit_buf.size();z++)
+				{
+					unset_bit(setbit_buf[z],disk->pdisk);
+				}
 				return false;
 			}
 			setbit_buf.push_back(eblock);
+			set_bit(eblock,disk->pdisk);
 			((int *)bbuf2)[j] = eblock;
 			disk->write_block(((int *)bbuf2)[j],bbuf1);
 		}
@@ -342,14 +358,6 @@ bool fileOpenTable::write_back_block_information()
 	disk->write_block(pfds->get_index(11),bbuf2);
 	if(index == blocknum)
 	{
-		for(unsigned int i = 0;i < blocks.size();i++)
-		{
-			set_bit(blocks[i],this->disk->pdisk);
-		}
-		for(unsigned int i = 0;i < setbit_buf.size();i++)
-		{
-			set_bit(setbit_buf[i],this->disk->pdisk);
-		}
 		return true;
 	}
 	else
@@ -697,6 +705,7 @@ bool Disk::write_file(unsigned int file,char *mem,unsigned int count)
 	{
 		for(unsigned int i = 0;i < block_throw;i++)
 		{
+			unset_bit(*(p->second.blocks.rbegin()),p->second.disk->pdisk);
 			p->second.blocks.pop_back();
 		}
 		unsigned int block = (unsigned int)(offset / (BLOCKSIZE_KB * KBSIZE));

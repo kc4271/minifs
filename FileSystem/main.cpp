@@ -2,7 +2,7 @@
 #include "filesystem.h"
 #include "windows.h"
 using namespace std;
-//#define READ
+#define READ
 int main()
 {
 	/*
@@ -11,7 +11,7 @@ int main()
 	cout<<buf<<endl;
 	*/
 	::miniFileSystem fs;
-	fs.create_disk("music",260000);
+	fs.create_disk("music",60000);
 	Disk &disk = fs.dskmounted[fs.curr];
 
 	string s = "D:\\SPGBackup.rar";
@@ -30,7 +30,7 @@ int main()
 	unsigned int filea[2];
 	disk.open_file("A.rar",&filea[0]);
 	disk.open_file("B.rar",&filea[1]);
-	
+	/*
 	for(int j = 0;j < 2;j++)
 	{
 		for(int i = 0;i < size;)
@@ -51,28 +51,34 @@ int main()
 		}
 		disk.close_file(filea[j]);
 	}
-	delete []buf;
-	in.close();
-	cout<<::GetTickCount() - t << endl;
-	
-	/*
+	*/
 	disk.write_file(filea[0],buf,size);
 	disk.write_file(filea[1],buf,size);
 	disk.close_file(filea[1]);
 	disk.close_file(filea[0]);
-	
+	delete []buf;
+	in.close();
+	cout<<::GetTickCount() - t << endl;
+	for(int i = 0;i < disk.blocknum;i++)
+	{
+		if(has_data(i,disk.pdisk) && i != 0 && i != 1)
+			cout<<"ERROR! "<<i<<endl;
+	}
+	for(int i = 0;i < 10;i++)
+	{
+		cout<<((int *)disk.fdes[filea[0]].descriptor)[i]<<endl;
+	}
 	disk.directory();
-	
 	disk.destroy_file("A.rar");
 	disk.destroy_file("B.rar");
 	disk.directory();
 	for(int i = 0;i < disk.blocknum;i++)
 	{
-		if(has_data(i,disk.pdisk))
+		if(has_data(i,disk.pdisk) && i != 0 && i != 1)
 			cout<<"ERROR! "<<i<<endl;
 	}
-	*/
-	disk.save_to_file();
+	
+	//disk.save_to_file();
 #else
 	char *buf = new char[size];
 	unsigned int file[2];
