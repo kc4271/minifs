@@ -1,7 +1,7 @@
 #include <iostream>
 #include "filesystem.h"
 using namespace std;
-#define READ
+//#define READ
 int main()
 {
 	/*

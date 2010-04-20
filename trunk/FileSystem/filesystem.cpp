@@ -334,7 +334,6 @@ Disk::Disk()
 
 Disk::~Disk()
 {
-	/*
 	for(map<unsigned int,fileOpenTable>::iterator p = fopt.begin();p != fopt.end();p++)
 	{
 		this->close_file(p->first);
@@ -347,7 +346,6 @@ Disk::~Disk()
 	pblocks = NULL;
 	if(pdisk)
 		delete []pdisk;
-	*/
 }
 
 Disk::Disk(const Disk &disk)
