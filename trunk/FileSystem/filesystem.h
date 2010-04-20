@@ -68,6 +68,7 @@ struct fileOpenTable
 	fileOpenTable();
 	~fileOpenTable();
 	fileOpenTable(const fileOpenTable &fo);
+	fileOpenTable &operator =(const fileOpenTable &fo);
 	int get_offset_in_buffer();
 	bool read_buf(char *mem,unsigned int count = 0); //count == 0 mean read all data after ptrinbuf
 	bool write_buf(char *mem,unsigned int count = 0);
@@ -89,8 +90,10 @@ struct Disk
 	unsigned int disksize_KB;
 
 	Disk();
-	Disk(const Disk &disk);
 	~Disk();
+	Disk(const Disk &disk);
+	Disk &operator =(const Disk &disk);
+
 	bool has_open(unsigned int file);
 	bool find_empty_block(unsigned int *block);
 	void init_disk_management_facility(bool isformat = false);
@@ -99,7 +102,7 @@ struct Disk
 	bool find_file_in_directory(const char *filename,unsigned int *fds);
 	void read_block(unsigned int i,char *p,unsigned int num = BLOCKSIZE_KB * KBSIZE);
 	void write_block(unsigned int i,char *p,unsigned int num = BLOCKSIZE_KB * KBSIZE);
-
+	
 	//------------------------------------API-----------------------------------------//
 	void format();
 	bool init_from_file();

@@ -119,8 +119,31 @@ fileOpenTable::~fileOpenTable()
 
 fileOpenTable::fileOpenTable(const fileOpenTable &fo)
 {
-	int offset = fo.ptrinbuf - fo.buf;
-	this->ptrinbuf = this->buf + offset;
+	this->isbufchanged = fo.isbufchanged;;	
+	this->isbigger = fo.isbigger;
+	memcpy(this->buf,fo.buf,BLOCKSIZE_KB * KBSIZE);
+    this->ptrinbuf = this->buf + (fo.ptrinbuf - fo.buf);
+	this->disk = fo.disk;
+	this->pfds = fo.pfds;
+	this->offset = fo.offset;
+	this->block_index = fo.block_index;
+	this->blocks = fo.blocks;
+}
+
+fileOpenTable &fileOpenTable::operator =(const fileOpenTable &fo)
+{
+	if(this == &fo)
+		return *this;
+	this->isbufchanged = fo.isbufchanged;;	
+	this->isbigger = fo.isbigger;
+	memcpy(this->buf,fo.buf,BLOCKSIZE_KB * KBSIZE);
+    this->ptrinbuf = this->buf + (fo.ptrinbuf - fo.buf);
+	this->disk = fo.disk;
+	this->pfds = fo.pfds;
+	this->offset = fo.offset;
+	this->block_index = fo.block_index;
+	this->blocks = fo.blocks;
+	return *this;
 }
 
 int fileOpenTable::get_offset_in_buffer()
@@ -140,13 +163,13 @@ bool fileOpenTable::read_buf(char *mem,unsigned int count)
 		report_error("fileOpenTable::read_buf mem is NULL!");
 		return false;
 	}
+	if(count == 0)
+		count = BLOCKSIZE_KB * KBSIZE - get_offset_in_buffer();
 	if(count + get_offset_in_buffer() > BLOCKSIZE_KB * KBSIZE)
 	{
 		report_error("fileOpenTable::read_buf ptrinbuf will overflow!");
 		return false;
 	}
-	if(count == 0)
-		count = BLOCKSIZE_KB * KBSIZE - get_offset_in_buffer();
 	if(this->offset + count > this->pfds->get_file_size())
 	{
 		report_error("fileOpenTable::read_buf ptrinbuf will encounter EOF!");
@@ -165,13 +188,13 @@ bool fileOpenTable::write_buf(char *mem,unsigned int count)
 		report_error("fileOpenTable::write_buf mem is NULL!");
 		return false;
 	}
+	if(count == 0)
+		count = BLOCKSIZE_KB * KBSIZE - get_offset_in_buffer();
 	if(count + get_offset_in_buffer() > BLOCKSIZE_KB * KBSIZE)
 	{
 		report_error("fileOpenTable::write_buf ptrinbuf will overflow!");
 		return false;
 	}
-	if(count == 0)
-		count = BLOCKSIZE_KB * KBSIZE - get_offset_in_buffer();
 	if(this->offset + count > this->pfds->get_file_size())
 	{
 		isbigger = true;
@@ -209,7 +232,6 @@ bool fileOpenTable::load_next_block_write()
 		}
 		blocks.push_back(eblock);
 		block_index++;
-		set_bit(eblock,this->disk->pdisk);
 	}
 	else
 	{
@@ -241,6 +263,10 @@ bool fileOpenTable::write_back_block_information()
 	unsigned int eblock;
 	unsigned int blocknum = blocks.size();
 	
+	char fdes_rollback[FILEDESCRIPTORSIZE];
+	memcpy(fdes_rollback,this->pfds,FILEDESCRIPTORSIZE);
+	vector<unsigned int> setbit_buf;
+
 	for(unsigned int i = 0;index < blocknum && i < ONELEVELINDEX;i++,index++) //level one
 	{
 		if(pfds->get_index(i) != 0)
@@ -265,10 +291,11 @@ bool fileOpenTable::write_back_block_information()
 	{
 		if(!disk->find_empty_block(&eblock))
 		{
-			report_error("fileOpenTable::write_back_block_information disk if full!");
+			report_error("fileOpenTable::write_back_block_information disk is full!\nRollback!");
+			memcpy(this->pfds,fdes_rollback,FILEDESCRIPTORSIZE);
 			return false;
 		}
-		set_bit(eblock,disk->pdisk);
+		setbit_buf.push_back(eblock);
 		pfds->set_index(10,eblock);
 		disk->write_block(eblock,bbuf1);
 	}
@@ -279,10 +306,11 @@ bool fileOpenTable::write_back_block_information()
 	{
 		if(!disk->find_empty_block(&eblock))
 		{
-			report_error("fileOpenTable::write_back_block_information disk if full!");
+			report_error("fileOpenTable::write_back_block_information disk if full!\nRollback!");
+			memcpy(this->pfds,fdes_rollback,FILEDESCRIPTORSIZE);
 			return false;
 		}
-		set_bit(eblock,disk->pdisk);
+		setbit_buf.push_back(eblock);
 		disk->clear_block(eblock);
 		pfds->set_index(11,eblock);
 	}
@@ -302,17 +330,28 @@ bool fileOpenTable::write_back_block_information()
 		{
 			if(!disk->find_empty_block(&eblock))
 			{
-				report_error("fileOpenTable::write_back_block_information disk if full!");
+				report_error("fileOpenTable::write_back_block_information disk if full!\nRollback!");
+				memcpy(this->pfds,fdes_rollback,FILEDESCRIPTORSIZE);
 				return false;
 			}
-			set_bit(eblock,disk->pdisk);
+			setbit_buf.push_back(eblock);
 			((int *)bbuf2)[j] = eblock;
 			disk->write_block(((int *)bbuf2)[j],bbuf1);
 		}
 	}
 	disk->write_block(pfds->get_index(11),bbuf2);
 	if(index == blocknum)
+	{
+		for(unsigned int i = 0;i < blocks.size();i++)
+		{
+			set_bit(blocks[i],this->disk->pdisk);
+		}
+		for(unsigned int i = 0;i < setbit_buf.size();i++)
+		{
+			set_bit(setbit_buf[i],this->disk->pdisk);
+		}
 		return true;
+	}
 	else
 	{
 		report_error("fileOpenTable::write_back_block_information file > 4G?");
@@ -355,6 +394,7 @@ Disk::Disk(const Disk &disk)
 		this->name = disk.name;
 		this->blocknum = 0;
 		this->disksize_KB = 0;
+		this->fopt = disk.fopt;
 		pdisk = NULL;
 		pblocks = NULL;
 		pdirectory = NULL;
@@ -380,6 +420,52 @@ Disk::Disk(const Disk &disk)
 			p->second.pfds = &(this->fdes[p->first]);
 		}
 	}
+}
+
+Disk &Disk::operator =(const Disk &disk)
+{
+	if(this == &disk)
+		return *this;
+	if(disk.disksize_KB == 0)
+	{
+		this->name = disk.name;
+		this->blocknum = 0;
+		this->disksize_KB = 0;
+		this->fopt = disk.fopt;
+		pdisk = NULL;
+		pblocks = NULL;
+		pdirectory = NULL;
+		fdes = NULL;
+	}
+	else
+	{
+		this->disksize_KB = disk.disksize_KB;
+		this->name = disk.name;
+		this->pdisk = new char [this->disksize_KB * KBSIZE];
+		if(!pdisk)
+		{
+			report_error("Disk::Disk_CopyConstructor memory error!");
+			this->name = disk.name;
+			this->blocknum = 0;
+			this->disksize_KB = 0;
+			this->fopt = disk.fopt;
+			pdisk = NULL;
+			pblocks = NULL;
+			pdirectory = NULL;
+			fdes = NULL;
+			return *this;
+		}
+		memcpy(this->pdisk,disk.pdisk,this->disksize_KB * KBSIZE);
+		init_disk_management_facility();
+		this->fopt = disk.fopt;
+		map<unsigned int,fileOpenTable>::iterator p = this->fopt.begin();
+		for(;p != fopt.end();p++)
+		{
+			p->second.disk = this;
+			p->second.pfds = &(this->fdes[p->first]);
+		}
+	}
+	return *this;
 }
 
 bool Disk::clear_block(unsigned int block)
@@ -562,6 +648,9 @@ bool Disk::write_file(unsigned int file,char *mem,unsigned int count)
 		report_error("Disk::write_file file is not illeagal!");
 		return false;
 	}
+	
+	fileOpenTable fot_rollback(p->second);
+
 	for(unsigned int writelen = 0;writelen < count;)
 	{
 		int bufoff = p->second.get_offset_in_buffer();
@@ -573,7 +662,11 @@ bool Disk::write_file(unsigned int file,char *mem,unsigned int count)
 		if(bufoff + count - writelen < BLOCKSIZE_KB * KBSIZE)
 		{
 			if(!p->second.write_buf(mem + writelen,count - writelen))
+			{
+				report_error("rollback!");
+				p->second = fot_rollback;
 				return false;
+			}
 			writelen += count;
 		}
 		else
@@ -583,6 +676,8 @@ bool Disk::write_file(unsigned int file,char *mem,unsigned int count)
 			writelen += BLOCKSIZE_KB * KBSIZE - bufoff;
 			if(!p->second.load_next_block_write())
 			{
+				report_error("rollback!");
+				p->second = fot_rollback;
 				return false;
 			}
 		}
@@ -613,7 +708,7 @@ bool Disk::lseek_file(unsigned int file,long long offset)
 		report_error("Disk::lseek_file cann't find file in fopt!");
 		return false;
 	}
-	unsigned int filesize = max(p->second.offset,p->second.pfds->get_file_size());
+	long long filesize = max(p->second.offset,p->second.pfds->get_file_size());
 	if(offset > filesize)
 	{
 		report_error("Disk::lseek_file offset > filesize!");
