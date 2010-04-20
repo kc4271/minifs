@@ -1,7 +1,7 @@
 #include <iostream>
 #include "filesystem.h"
 using namespace std;
-
+//#define READ
 int main()
 {
 	/*
@@ -9,11 +9,12 @@ int main()
 	_ctime64_s(buf,1000,&t); 
 	cout<<buf<<endl;
 	*/
-	
+
 	::miniFileSystem fs;
-	fs.create_disk("music",60000);
+	fs.create_disk("music",260000);
 	Disk &disk = fs.dskmounted[fs.curr];
-	/*
+
+#ifdef READ
 	ifstream in("D:\\filelist.txt");
 	string s;
 	int i = 0,base = 10011047;
@@ -22,7 +23,6 @@ int main()
 	while(in>>s)
 	{
 		sprintf(names,"%d.wav",base+i);
-		i++;
 		struct _stat info;
 		_stat(s.c_str(), &info);
 		unsigned int size = info.st_size;
@@ -33,19 +33,21 @@ int main()
 		char *buf = new char[size];
 		wav.read(buf,size);
 		wav.close();
-		
 		disk.create_file(names);
 		unsigned int file;
 		disk.open_file(names,&file);
 		disk.write_file(file,buf,size);
 		disk.close_file(file);
+		if(base + i == 10011167 || base + i == 10011067 || base + i == 10011132 || base + i == 10011101 || base + i == 10011099)
+			disk.destroy_file(names);
+		i++;
 		delete []buf;
 	}
 	disk.directory();
 	disk.save_to_file();
 	in.close();
-	*/
 	
+#else
 	disk.init_from_file();
 	for(unsigned int i = 0;i < disk.blocknum;i++)
 	{
@@ -69,6 +71,6 @@ int main()
 			delete []buf;
 		}
 	}
-	
+#endif
 	return 0;
 }
