@@ -372,12 +372,14 @@ Disk::Disk(const Disk &disk)
 }
 bool Disk::find_empty_block(unsigned int *block)
 {
+	static unsigned int begin = 0;
 	for(unsigned int i = 0;i < this->blocknum;i++)
 	{
-		if(!has_data(i,pdisk))
+		if(!has_data((begin + i) % this->blocknum,pdisk))
 		{
 			if(block)
-				*block = i;
+				*block = (begin + i) % this->blocknum;
+			begin = (begin + 1) % this->blocknum;
 			return true;
 		}
 	}
@@ -673,7 +675,7 @@ bool Disk::find_file_in_directory(const char *filename,unsigned int *fds)
 	{
 		if(has_data(i,this->pdirectory))
 		{
-			string s1 =filename;
+			string s1 = filename;
 			string s2 = this->fdes[i].get_name();
 			for(string::size_type t = 0;t < s1.length();t++)
 			{
@@ -800,11 +802,12 @@ bool Disk::destroy_file(char *filename)
 	}
 
 	char indexbuf[BLOCKSIZE_KB * KBSIZE];			//level 3
+	memset(indexbuf,0,BLOCKSIZE_KB * KBSIZE);
 	if(fdes[file].get_index(11) != 0)
 	{
 		read_block(fdes[file].get_index(11),indexbuf);
 	}
-	for(unsigned int i = 0;i < BLOCKSIZE_KB * KBSIZE / INDEXSIZE;i++)
+	for(unsigned int i = 0;i < (BLOCKSIZE_KB * KBSIZE / INDEXSIZE);i++)
 	{
 		if(((int *)indexbuf)[i] == 0)
 			break;
@@ -818,7 +821,7 @@ bool Disk::destroy_file(char *filename)
 		write_block(fdes[file].get_index(10),emptybuf);
 	}
 
-	memset(&fdes[file],0,sizeof(FILEDESCRIPTORSIZE));
+	memset(fdes[file].descriptor,0,sizeof(FILEDESCRIPTORSIZE));
 	
 	unset_bit(file,this->pdirectory);	//delete entry in directory
 	return true;
