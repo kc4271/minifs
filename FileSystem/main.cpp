@@ -2,7 +2,7 @@
 #include "filesystem.h"
 #include "windows.h"
 using namespace std;
-//#define READ
+#define READ
 int main()
 {
 	/*
@@ -14,63 +14,69 @@ int main()
 	fs.create_disk("music",260000);
 	Disk &disk = fs.dskmounted[fs.curr];
 
+	string s = "D:\\SPGBackup.rar";
+	struct _stat info;
+	_stat(s.c_str(), &info);
+	unsigned int size = info.st_size;
+	cout<<size<<endl;
 #ifdef READ
 	unsigned int t = ::GetTickCount();
-	ifstream in("D:\\filelist.txt");
-	string s;
-	int i = 0,base = 10011047;
-	char names[100];
 	
-	while(in>>s)
+	ifstream in(s.c_str(),ios::binary);
+	char *buf = new char[size];
+	in.read(buf,size);
+	disk.create_file("A.rar");
+	disk.create_file("B.rar");
+	unsigned int filea[2];
+	disk.open_file("A.rar",&filea[0]);
+	disk.open_file("B.rar",&filea[1]);
+	/*
+	for(int j = 0;j < 2;j++)
 	{
-		sprintf(names,"%d.wav",base+i);
-		struct _stat info;
-		_stat(s.c_str(), &info);
-		unsigned int size = info.st_size;
-
-		ifstream wav(s.c_str(),ios::binary);
-		if(wav.fail())
-			cout<<"wav fail"<<endl;
-		char *buf = new char[size];
-		wav.read(buf,size);
-		wav.close();
-		disk.create_file(names);
-		unsigned int file;
-		disk.open_file(names,&file);
-		disk.write_file(file,buf,size);
-		disk.close_file(file);
-		if(base + i == 10011167 || base + i == 10011067 || base + i == 10011132 || base + i == 10011101 || base + i == 10011099)
-			disk.destroy_file(names);
-		i++;
-		delete []buf;
-	}
-	disk.directory();
-	disk.save_to_file();
-	in.close();
-#else
-	disk.init_from_file();
-	for(unsigned int i = 0;i < disk.blocknum;i++)
-	{
-		if(has_data(i,disk.pdirectory))
+		for(int i = 0;i < size;)
 		{
-			unsigned int file;
-			disk.open_file(disk.fdes[i].get_name().c_str(),&file);
-			char *buf = new char[disk.get_file_size(i)];
-			disk.read_file(file,buf,(unsigned int)disk.get_file_size(i));
-			string s = "d:\\wav\\";
-			s += disk.fdes[i].get_name();
-			ofstream out(s.c_str(),ios::binary);
-			if(out.fail())
+			if(size - i > 714)
 			{
-				cout<<"faile!"<<endl;
+				disk.write_file(filea[j],buf + i, 714);
+				i += 714;
 			}
-			out.write(buf,disk.get_file_size(file));
-			out.flush();
-			out.close();
-			disk.close_file(file);
-			delete []buf;
+			else
+			{
+				disk.write_file(filea[j],buf + i,size - i);
+				break;
+			}
+			unsigned int c = (rand() % i);
+			disk.lseek_file(filea[j],i - c);
+			disk.lseek_file(filea[j],i);
 		}
+		disk.close_file(filea[j]);
 	}
+	*/
+	disk.write_file(filea[0],buf,size);
+	disk.write_file(filea[1],buf,size);
+	disk.close_file(filea[1]);
+	disk.close_file(filea[0]);
+	delete []buf;
+	in.close();
+	cout<<::GetTickCount() - t << endl;
+	//disk.save_to_file();
+#else
+	char *buf = new char[size];
+	unsigned int file[2];
+	disk.init_from_file();
+	disk.open_file("A.rar",&file[0]);
+	disk.open_file("B.rar",&file[1]);
+	for(int j = 0;j < 2;j++)
+	{
+		disk.read_file(file[j],buf,size);
+		char name[10];
+		sprintf(name,"D:\\%c.rar",'A'+ j);
+		ofstream out(name,ios::binary);
+		out.write(buf,size);
+		out.close();
+		disk.close_file(file[j]);
+	}
+
 #endif
 	return 0;
 }
