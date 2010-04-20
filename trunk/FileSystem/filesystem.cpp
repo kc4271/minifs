@@ -145,13 +145,13 @@ bool fileOpenTable::read_buf(char *mem,unsigned int count)
 		report_error("fileOpenTable::read_buf ptrinbuf will overflow!");
 		return false;
 	}
+	if(count == 0)
+		count = BLOCKSIZE_KB * KBSIZE - get_offset_in_buffer();
 	if(this->offset + count > this->pfds->get_file_size())
 	{
 		report_error("fileOpenTable::read_buf ptrinbuf will encounter EOF!");
 		return false;
 	}
-	if(count == 0)
-		count = BLOCKSIZE_KB * KBSIZE - get_offset_in_buffer();
 	memcpy(mem,ptrinbuf,count);
 	this->ptrinbuf += count;
 	this->offset += count;
@@ -170,12 +170,12 @@ bool fileOpenTable::write_buf(char *mem,unsigned int count)
 		report_error("fileOpenTable::write_buf ptrinbuf will overflow!");
 		return false;
 	}
+	if(count == 0)
+		count = BLOCKSIZE_KB * KBSIZE - get_offset_in_buffer();
 	if(this->offset + count > this->pfds->get_file_size())
 	{
 		isbigger = true;
 	}
-	if(count == 0)
-		count = BLOCKSIZE_KB * KBSIZE - get_offset_in_buffer();
 	memcpy(ptrinbuf,mem,count);
 	this->ptrinbuf += count;
 	this->offset += count;
@@ -602,26 +602,31 @@ bool Disk::lseek_file(unsigned int file,long long offset)
 		report_error("Disk::lseek_file file is not opened!");
 		return false;
 	}
+	
 	unsigned int block;
 	unsigned int bufoff;
 	block = (unsigned int)(offset / (BLOCKSIZE_KB * KBSIZE));
 	bufoff = offset %  (BLOCKSIZE_KB * KBSIZE);
-	if(offset > this->fdes[file].get_file_size())
-	{
-		report_error("Disk::lseek_file offset > filesize!");
-		return false;
-	}
 	map<unsigned int,fileOpenTable>::iterator p = fopt.find(file);
 	if(p == fopt.end())
 	{
 		report_error("Disk::lseek_file cann't find file in fopt!");
 		return false;
 	}
+	unsigned int filesize = max(p->second.offset,p->second.pfds->get_file_size());
+	if(offset > filesize)
+	{
+		report_error("Disk::lseek_file offset > filesize!");
+		return false;
+	}
 	p->second.unload_buf();
-	read_block(p->second.blocks[block],p->second.buf);
+	if(block != p->second.block_index)
+	{
+		read_block(p->second.blocks[block],p->second.buf);
+		p->second.block_index = block;
+	}
 	p->second.offset = offset;
 	p->second.ptrinbuf = p->second.buf + bufoff;
-	p->second.block_index = block;
 	return true;
 }
 

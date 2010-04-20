@@ -7,6 +7,7 @@
 #include <string>
 #include <map>
 #include <sys/stat.h>
+#include <algorithm>
 using namespace std;
 
 #define BLOCKSIZE_KB 4
