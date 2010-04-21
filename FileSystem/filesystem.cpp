@@ -1,6 +1,7 @@
 #include "filesystem.h"
 
 char * dirname = "_*_directory_%_";
+unsigned int bit_table[] = {0x1<<7,0x1<<6,0x1<<5,0x1<<4,0x1<<3,0x1<<2,0x1<<1,0x1<<0};
 
 template <class Type>
 Type get_upbound(Type integer_value,Type segment)
@@ -13,21 +14,22 @@ void set_bit(unsigned int pos,char *pbegin)
 {
 	unsigned int num_byte = (pos >> 3);
 	unsigned int offset = pos & 0x7;
-	pbegin[num_byte] |= (0x1 << (7 - offset));
+	pbegin[num_byte] |= bit_table[offset];
 }
+
 
 void unset_bit(unsigned int pos,char *pbegin)
 {
 	unsigned int num_byte = (pos >> 3);
 	unsigned int offset = pos & 0x7;
-	pbegin[num_byte] &= (0xff ^ (0x1 << (7 - offset)));
+	pbegin[num_byte] &= (0xff ^ bit_table[offset]);
 }
 
 bool has_data(unsigned int pos,char *pbegin)
 {
 	unsigned int num_byte = (pos >> 3);
 	unsigned int offset = pos & 0x7;
-	return (pbegin[num_byte] & (0x1 << (7 - offset))) > 0;
+	return (pbegin[num_byte] & bit_table[offset]) > 0;
 }
 
 /*--------------------------fileDescriptor-------------------------------------------------------------*/
@@ -312,7 +314,7 @@ bool fileOpenTable::write_back_block_information()
 	{
 		if(!disk->find_empty_block(&eblock))
 		{
-			report_error("fileOpenTable::write_back_block_information disk if full!\nRollback!");
+			report_error("fileOpenTable::write_back_block_information disk is full!\nRollback!");
 			memcpy(this->pfds,fdes_rollback,FILEDESCRIPTORSIZE);
 			for(unsigned int z = 0;z < setbit_buf.size();z++)
 			{
@@ -341,7 +343,7 @@ bool fileOpenTable::write_back_block_information()
 		{
 			if(!disk->find_empty_block(&eblock))
 			{
-				report_error("fileOpenTable::write_back_block_information disk if full!\nRollback!");
+				report_error("fileOpenTable::write_back_block_information disk is full!\nRollback!");
 				memcpy(this->pfds,fdes_rollback,FILEDESCRIPTORSIZE);
 				for(unsigned int z = 0;z < setbit_buf.size();z++)
 				{
@@ -653,7 +655,7 @@ bool Disk::write_file(unsigned int file,char *mem,unsigned int count)
 	map<unsigned int,fileOpenTable>::iterator p = fopt.find(file);
 	if(p == fopt.end())
 	{
-		report_error("Disk::write_file file is not illeagal!");
+		report_error("Disk::write_file file is not illegal!");
 		return false;
 	}
 	
@@ -794,9 +796,15 @@ bool Disk::read_file(unsigned int file,char *mem,unsigned int count)
 		report_error("Disk::read_file read a unopen file!");
 		return false;
 	}
+	map<unsigned int,fileOpenTable>::iterator p = fopt.find(file);
+	if(p == fopt.end())
+	{
+		report_error("Disk::read_file file is not illegal!");
+		return false;
+	}
 	for(unsigned int readlen = 0;readlen < count;)
 	{
-		int bufoff = fopt[file].get_offset_in_buffer();
+		int bufoff = p->second.get_offset_in_buffer();
 		if(bufoff == -1)
 		{
 			report_error("Disk::read_file bufoff == -1!");
@@ -804,16 +812,16 @@ bool Disk::read_file(unsigned int file,char *mem,unsigned int count)
 		}
 		if(bufoff + count - readlen <= BLOCKSIZE_KB * KBSIZE)
 		{
-			if(!fopt[file].read_buf(mem + readlen,count - readlen))
+			if(!p->second.read_buf(mem + readlen,count - readlen))
 				return false;
 			readlen += count;
 		}
 		else if(bufoff + count > BLOCKSIZE_KB * KBSIZE)
 		{
-			if(!fopt[file].read_buf(mem + readlen))
+			if(!p->second.read_buf(mem + readlen))
 				return false;
 			readlen += BLOCKSIZE_KB * KBSIZE - bufoff;
-			if(!fopt[file].load_next_block_read())
+			if(!p->second.load_next_block_read())
 			{
 				return false;
 			}
