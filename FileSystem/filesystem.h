@@ -71,8 +71,8 @@ struct fileOpenTable
 	fileOpenTable &operator =(const fileOpenTable &fo);
 
 	int get_offset_in_buffer();
-	bool read_buf(char *mem,unsigned int count = 0); //count == 0 mean read all data after ptrinbuf
-	bool write_buf(char *mem,unsigned int count = 0);
+	bool read_buf(char *mem,unsigned int count = -1); //count == 0 mean read all data after ptrinbuf
+	bool write_buf(char *mem,unsigned int count = -1);
 	bool load_next_block_read();
 	bool load_next_block_write();
 	bool unload_buf();

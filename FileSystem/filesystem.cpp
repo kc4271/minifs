@@ -165,7 +165,7 @@ bool fileOpenTable::read_buf(char *mem,unsigned int count)
 		report_error("fileOpenTable::read_buf mem is NULL!");
 		return false;
 	}
-	if(count == 0)
+	if(count == -1)
 		count = BLOCKSIZE_KB * KBSIZE - get_offset_in_buffer();
 	if(count + get_offset_in_buffer() > BLOCKSIZE_KB * KBSIZE)
 	{
@@ -190,7 +190,7 @@ bool fileOpenTable::write_buf(char *mem,unsigned int count)
 		report_error("fileOpenTable::write_buf mem is NULL!");
 		return false;
 	}
-	if(count == 0)
+	if(count == -1)
 		count = BLOCKSIZE_KB * KBSIZE - get_offset_in_buffer();
 	if(count + get_offset_in_buffer() > BLOCKSIZE_KB * KBSIZE)
 	{
